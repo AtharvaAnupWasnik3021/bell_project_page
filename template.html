@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boundary-Aware Surrogate Modeling of Finite-Temperature Bell Nonlocality</title>
+<meta name="description" content="Does low pointwise surrogate error guarantee a faithful recovery of the Bell-nonlocality boundary? Multiseed study of the finite-temperature Heisenberg dimer. Code, data and reproducibility report.">
+<meta name="author" content="Atharva Anup Wasnik">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://atharvaanupwasnik3021.github.io/F-BELL-/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Boundary-Aware Surrogate Modeling of Finite-Temperature Bell Nonlocality">
+<meta property="og:description" content="Pointwise surrogate accuracy versus faithful recovery of the S_max = 2 boundary: 10 seeds, 360 runs, full reproducibility.">
+<meta property="og:url" content="https://atharvaanupwasnik3021.github.io/F-BELL-/">
+<meta property="og:image" content="https://atharvaanupwasnik3021.github.io/F-BELL-/assets/figures/figW_ground_truth_landscape.png">
+<link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+<script>try{var t=localStorage.getItem("fbell-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-nav">
+  <nav class="wrap" aria-label="Sections">
+    <a class="brand" href="#top">Bell-boundary surrogates</a>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#question">Question</a></li>
+      <li><a href="#setting">Setting</a></li>
+      <li><a href="#design">Design</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#wedge">Wedge</a></li>
+      <li><a href="#replication">Seeds</a></li>
+      <li><a href="#correlation">Correlation</a></li>
+      <li><a href="#theorem">Theorem</a></li>
+      <li><a href="#ablation">Ablation</a></li>
+      <li><a href="#reproducibility">Reproduce</a></li>
+      <li><a href="#figures">Figures</a></li>
+      <li><a href="#cite">Cite</a></li>
+    </ul>
+    <button class="icon-btn theme" id="theme-toggle" type="button" aria-label="Switch color theme">Dark</button>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">Menu</button>
+  </nav>
+</header>
+
+<main id="main">
+
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>Boundary-Aware Surrogate Modeling of Finite-Temperature Bell Nonlocality</h1>
+      <p class="sub">This project asks whether pointwise surrogate accuracy is enough to recover a physically meaningful Bell-nonlocality boundary. We compare three surrogates of the CHSH landscape of a Heisenberg dimer across six training budgets and ten random seeds.</p>
+      <p class="author">Atharva Anup Wasnik</p>
+      <div class="btns">
+        <span class="btn disabled" role="link" aria-disabled="true" title="No paper URL is available yet">Paper (link pending)</span>
+        <a class="btn primary" href="https://github.com/AtharvaAnupWasnik3021/F-BELL-">GitHub</a>
+        <a class="btn" href="#reproducibility">Reproducibility</a>
+        <a class="btn" href="#results">Results</a>
+      </div>
+    </div>
+    <figure class="fig">
+      <a class="zoom" href="assets/figures/figW_ground_truth_landscape.png" data-title="Ground-truth landscape and boundary">
+        <div class="imgwrap"><img src="assets/figures/figW_ground_truth_landscape.png" width="{{W_SIZE}}" alt="Heat map of the exact maximal CHSH value over temperature and field, with the S_max = 2 boundary as white points and the high-field wedge in red."></div>
+      </a>
+      <figcaption><b>The object being learned.</b> Exact S<sub>max</sub>(T, h) on the 240×240 reference grid; the extracted S<sub>max</sub> = 2 boundary has {{N_BD}} points, of which {{N_WEDGE}} (red) form the high-field wedge.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="block" id="question">
+  <div class="wrap">
+    <h2>Can pointwise accuracy guarantee boundary fidelity?</h2>
+    <div class="two-col">
+      <div class="prose">
+        <p class="lede">A surrogate can have low prediction error almost everywhere and still put the decision boundary in the wrong place.</p>
+        <p>RMSE averages the error over the whole parameter domain. The Bell-nonlocality boundary is a curve, and its location depends on the error in a thin neighborhood of that curve. A localized error, or a flattened landscape near the threshold, can change the average very little while shifting or deleting part of the extracted boundary.</p>
+      </div>
+      <div class="prose">
+        <p>For finite-temperature Bell nonlocality the boundary is the physically meaningful object: it separates thermal states that can violate the CHSH inequality from those that cannot. A surrogate used to map that region should therefore be judged on where it puts the boundary, not only on how close its values are.</p>
+        <p>We evaluate each surrogate at three levels: pointwise error (RMSE), area-weighted region disagreement, and worst-case boundary distance (Hausdorff), plus a point-level check of a boundary-displacement bound.</p>
+      </div>
+    </div>
+
+    <div class="card finding" style="margin-top:2rem">
+      <h3>Key findings from the repository data</h3>
+      <ul>
+        <li><b>Cross-model dissociation.</b> Random Forest (RF) has the lowest mean RMSE from N = 250 upward and the highest mean Hausdorff boundary error at every budget. At N = 2500 with boundary-aware sampling: RMSE {{RF_RMSE}} (RF) vs {{MD_RMSE}} (MLP-data); d<sub>H</sub> {{RF_DH}} vs {{MD_DH}}.</li>
+        <li><b>Wedge failure.</b> RF misses the high-field boundary wedge in {{RF_MISS_1000}} and {{RF_MISS_2500}} seed × sampling evaluations at N = 1000 and N = 2500 respectively. Both MLP variants recover it in 20/20 at each budget.</li>
+        <li><b>Correlations.</b> Pooled RMSE vs Hausdorff: ρ = {{RHO_H}}, p = {{P_H}}, n = 360 (not significant). RMSE vs region disagreement: ρ = {{RHO_R}}, p = {{P_R}}.</li>
+        <li><b>Theorem-bound check.</b> The displacement bound holds in {{TH_SAT}} of {{TH_TOT}} point-level checks ({{TH_PCT}}); it is not satisfied in every check.</li>
+        <li><b>Tsirelson-aware loss (20 seeds).</b> Significantly fewer Tsirelson-bound violations (BH-adjusted p = {{P_TS_BH}}). No significant change in boundary fidelity (all BH-adjusted p ≥ {{P_DH_BH_MIN}}).</li>
+      </ul>
+    </div>
+    <p class="note small"><b>Scope.</b> At N = 50 and N = 100 the MLPs have lower mean RMSE than RF, so “RF has the best RMSE” holds only from N = 250 upward (see the budget-sweep table below). All statements describe this simulator, these three surrogates and these budgets.</p>
+
+    <div class="metrics" id="glance" aria-label="Results at a glance">
+      <div class="metric"><div class="v">{{N_MAIN}}</div><div class="l">Main runs (3 models × 6 budgets × 2 samplings × 10 seeds)</div></div>
+      <div class="metric"><div class="v">{{N_SEEDS}}</div><div class="l">Independent seeds in the main sweep (42–51)</div></div>
+      <div class="metric"><div class="v">{{N_ABL}}</div><div class="l">Ablation runs (4 loss variants × 20 seeds)</div></div>
+      <div class="metric"><div class="v">{{N_TOTAL}}</div><div class="l">Total runs</div></div>
+      <div class="metric zero"><div class="v">{{N_FAIL}}</div><div class="l">Failed runs</div></div>
+      <div class="metric"><div class="v">{{TH_PCT}}</div><div class="l">Theorem-bound checks satisfied ({{TH_SAT}} of {{TH_TOT}})</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="setting">
+  <div class="wrap">
+    <h2>Physical setting</h2>
+    <div class="two-col">
+      <div class="prose">
+        <p>The system is a finite-temperature, two-spin isotropic Heisenberg dimer in a uniform field <i>h</i> along <i>z</i>, with <i>J</i> = <i>k</i><sub>B</sub> = 1:</p>
+        {{D:ham}}
+        <p>The thermal reduced state is the Gibbs state</p>
+        {{D:rho}}
+        <p>For a two-qubit state, the Horodecki criterion gives the maximal CHSH value over measurement settings. With the correlation matrix and its eigenvalues {{M:u}} of {{M:TT}},</p>
+        {{D:smax}}
+      </div>
+      <div class="prose">
+        <p>The state can violate the CHSH inequality exactly when {{M:Sgt2}}; quantum mechanics caps {{M:Smax}} at the Tsirelson bound {{M:tsir}} ≈ 2.828. The <b>Bell-nonlocal region</b> and its boundary are</p>
+        {{D:region}}
+        <p>The reference landscape is an exact-diagonalization grid over {{M:TJrange}} and {{M:hJrange}}. In this model, at low temperature and low field, the singlet ground state gives {{M:Smax}} close to 2√2. A ground-state level crossing at {{M:h2}} switches the ground state to the fully polarized product state, for which {{M:Smax}} = 2.</p>
+        <p>The last consequence is the geometry that matters here: beyond {{M:h24}} the boundary continues only at very low temperature (the {{N_WEDGE}} reference boundary points with {{M:hgeq25}} lie at {{M:TJ}} ≤ {{WEDGE_TMAX}}), where {{M:Smax}} sits close to the threshold. This is the <b>high-field wedge</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="design">
+  <div class="wrap">
+    <h2>Experimental design</h2>
+    <ol class="pipeline" aria-label="Pipeline">
+      <li><b>Physical simulator</b>Exact diagonalization of the dimer</li>
+      <li><b>Training data</b>N simulator evaluations, uniform or boundary-aware</li>
+      <li><b>Surrogate model</b>RF, MLP, or physics-aware MLP</li>
+      <li><b>Predicted Bell landscape</b>Evaluated on the fixed 240×240 test grid</li>
+      <li><b>Boundary extraction</b>Predicted S<sub>max</sub> = 2 contour points</li>
+      <li><b>Pointwise + geometric evaluation</b>RMSE, region, Hausdorff, displacement</li>
+    </ol>
+    <div class="two-col">
+      <div class="card">
+        <dl class="spec">
+          <dt>Models</dt><dd>Random Forest (300 trees); MLP (2-32-32-1, Tanh, Adam, lr 0.01, 400 epochs, MSE); physics-aware MLP (same network; boundary-weighted MSE plus a Tsirelson penalty on {{M:Smax}} &gt; 2√2, λ<sub>T</sub> = 1)</dd>
+          <dt>Sampling</dt><dd>Uniform (log-uniform in <i>T</i>, uniform in <i>h</i>); boundary-aware (a pilot scan, counted against the budget, locates the approximate boundary, then samples concentrate near it)</dd>
+          <dt>Budgets</dt><dd>N ∈ {50, 100, 250, 500, 1000, 2500}</dd>
+          <dt>Seeds</dt><dd>Main sweep 42–51 (10 seeds); ablation 42–61 (20 seeds)</dd>
+          <dt>Test grid</dt><dd>One fixed 240×240 exact grid, never regenerated per run</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <dl class="spec">
+          <dt>RMSE</dt><dd>Root-mean-square error of predicted {{M:Smax}} over the test grid</dd>
+          <dt>Region disagreement</dt><dd>Area-weighted measure of the symmetric difference between the true and predicted regions {{M:Sgt2}}</dd>
+          <dt>Hausdorff d<sub>H</sub></dt><dd>Worst-case distance between the true and predicted extracted boundary point sets, in (<i>T</i>, <i>h</i>) coordinates</dd>
+          <dt>Boundary displacement</dt><dd>Distance from a true boundary point to the nearest predicted boundary point</dd>
+          <dt>Bound violations</dt><dd>Point-level check of displacement ≤ ε/m (see the theorem section) and the rate of predictions above 2√2</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="results">
+  <div class="wrap">
+    <h2>Main results</h2>
+    <p class="prose">Each row aggregates 10 seeds for one model, budget and sampling strategy (values are mean ± standard deviation across seeds, read from <a href="summary.csv"><code>summary.csv</code></a>; the last column counts seeds for which the predicted boundary did not reach {{M:hgeq25}}). Click a column heading to sort.</p>
+    <div class="table-tools">
+      <label>Model
+        <select id="f-model"><option value="">All models</option><option value="rf">RF</option><option value="mlp_data">MLP (data)</option><option value="mlp_physics">MLP (physics-aware)</option></select></label>
+      <label>Training budget N
+        <select id="f-budget"><option value="">All budgets</option>{{BUDGET_OPTIONS}}</select></label>
+      <label>Sampling
+        <select id="f-sampling"><option value="">All strategies</option><option value="uniform">Uniform</option><option value="boundary">Boundary-aware</option></select></label>
+      <button type="button" id="f-reset">Reset</button>
+      <span id="row-count" class="muted" role="status" aria-live="polite"></span>
+    </div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Main results table, scrollable">
+      <table class="data" id="main-table">
+        <thead><tr>
+          <th class="l" data-key="model" data-type="str" aria-sort="none"><button type="button">Model</button></th>
+          <th data-key="budget" data-type="num"><button type="button">N</button></th>
+          <th class="l" data-key="sampling" data-type="str"><button type="button">Sampling</button></th>
+          <th data-key="rmse" data-type="num"><button type="button">RMSE</button></th>
+          <th data-key="dh" data-type="num"><button type="button">Hausdorff d<sub>H</sub></button></th>
+          <th data-key="reg" data-type="num"><button type="button">Region disagreement</button></th>
+          <th data-key="miss" data-type="num"><button type="button">Miss rate r<sub>miss</sub></button></th>
+          <th data-key="wedge" data-type="num"><button type="button">Wedge missed</button></th>
+        </tr></thead>
+        <tbody>
+{{TABLE_ROWS}}
+        </tbody>
+      </table>
+    </div>
+    <p id="no-rows" hidden>No configurations match these filters.</p>
+
+    <h3>Budget sweep, averaged over sampling strategies</h3>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Budget sweep table, scrollable">
+      <table class="data">
+        <caption>Means over 10 seeds × 2 sampling strategies (20 runs per cell), from <code>runs.csv</code>. Green marks the lowest value in each row and metric.</caption>
+        <thead><tr><th rowspan="2">N</th><th colspan="3" style="text-align:center">RMSE</th><th colspan="3" style="text-align:center">Hausdorff d<sub>H</sub></th></tr>
+        <tr><th>RF</th><th>MLP (data)</th><th>MLP (physics)</th><th>RF</th><th>MLP (data)</th><th>MLP (physics)</th></tr></thead>
+        <tbody>
+{{SWEEP_ROWS}}
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Pointwise accuracy is not boundary fidelity</h3>
+    <div class="prose">
+      <p>Random Forest can have strong pointwise performance and still recover the Bell boundary poorly. Its RMSE falls monotonically with budget, while its mean Hausdorff error does not: it rises from {{RF_DH_100}} at N = 100 to {{RF_DH_2500}} at N = 2500 ({{RF_DH_50}} at N = 50). The MLPs' Hausdorff errors fall and then plateau at roughly 0.2.</p>
+      <p>This shows that RMSE alone can miss worst-case geometric errors in this setting. It does not show that RMSE is uninformative: RMSE is clearly related to region disagreement (below), and the boundary metric is a worst-case one, so it is sensitive to a single missing segment.</p>
+    </div>
+    <div class="fig-row">
+      {{FIG:figA_rmse_vs_budget|RMSE versus training budget|Mean RMSE by model with ±1 s.d. bands (10 seeds × 2 sampling strategies).}}
+      {{FIG:figB_hausdorff_vs_budget|Hausdorff error versus training budget|Mean Hausdorff boundary error by model. RF stays near 1 as its RMSE keeps falling.}}
+    </div>
+  </div>
+</section>
+
+<section class="block" id="wedge">
+  <div class="wrap">
+    <h2>The high-field boundary wedge</h2>
+    <div class="prose">
+      <p>The true boundary has a branch for {{M:hgeq25}} that lies at very low temperature (red points in the figure). A predicted boundary is counted as having <b>recovered</b> the wedge if it contains at least one point with {{M:hgeq25}}. That threshold, the midpoint between the level crossing at {{M:h2}} and the domain edge {{M:h3}}, was fixed in <a href="config.json"><code>config.json</code></a> before the 10-seed outcomes were inspected, and is applied identically to all models.</p>
+    </div>
+    <div class="wedge-panels">
+      <figure class="fig">
+        <a class="zoom" href="assets/figures/figW_ground_truth_landscape.png" data-title="Ground truth with wedge points"><div class="imgwrap"><img loading="lazy" src="assets/figures/figW_ground_truth_landscape.png" width="{{W_SIZE}}" alt="Ground-truth landscape with the wedge boundary points in red."></div></a>
+        <figcaption><b>Ground truth.</b> Exact landscape; red = wedge boundary points.</figcaption>
+      </figure>
+      <div class="placeholder" role="img" aria-label="Placeholder: Random Forest predicted landscape not archived"><b>Random Forest</b>Predicted landscape image not archived in the repository.</div>
+      <div class="placeholder" role="img" aria-label="Placeholder: MLP predicted landscape not archived"><b>MLP (data)</b>Predicted landscape image not archived in the repository.</div>
+      <div class="placeholder" role="img" aria-label="Placeholder: physics-aware MLP predicted landscape not archived"><b>MLP (physics-aware)</b>Predicted landscape image not archived in the repository.</div>
+    </div>
+    <p class="small muted" style="max-width:46rem">The repository stores run-level metrics but not fitted models or predicted landscapes, so the three model panels are placeholders rather than reconstructed images. The seed-level evidence is the recovered maximum <i>h/J</i> of every run, shown next.</p>
+    <div class="two-col" style="margin-top:1.5rem">
+      <div class="prose">
+        <p>RF missed the wedge in <b>{{RF_MISS_1000}}</b> evaluations at N = 1000 and <b>{{RF_MISS_2500}}</b> at N = 2500 (10 seeds × 2 sampling strategies each). MLP (data) and MLP (physics-aware) recovered it in <b>20/20</b> at both budgets. These counts match <a href="wedge_failure_frequency.csv"><code>wedge_failure_frequency.csv</code></a>, and all RF rows in <a href="rf_wedge_seedbyseed.csv"><code>rf_wedge_seedbyseed.csv</code></a> are flagged as not detected.</p>
+        <p>At smaller budgets the outcome is not uniform: RF misses the wedge in {{RF_MISS_SMALL}} of 20 evaluations depending on the budget, and MLP (data) misses it once each at N = 50, 100 and 250.</p>
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Wedge misses by budget, scrollable">
+        <table class="data">
+          <caption>Evaluations (10 seeds × 2 samplings) in which the wedge was missed, from <code>runs.csv</code>.</caption>
+          <thead><tr><th>Model</th>{{WEDGE_HEAD}}</tr></thead>
+          <tbody>
+{{WEDGE_ROWS}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="max-width:46rem">
+    {{FIG:figF_wedge_recovery|Wedge recovery by seed|Maximum h/J reached by each run's predicted boundary at N = 1000 and 2500. The dotted line is the true maximum (3.0); the dashed red line is the wedge-detection threshold (2.5).}}
+    </div>
+  </div>
+</section>
+
+<section class="block" id="replication">
+  <div class="wrap">
+    <h2>10-seed replication</h2>
+    <div class="prose">
+      <p>The original experiment used 3 seeds and 108 runs. It was extended to <b>10 seeds and {{N_MAIN}} main runs</b> with the same physical simulator, the same fixed test grid, the same model architectures and hyperparameters, and the same evaluation code. According to the repository README, the only change to the design is the seed list (42–44 became 42–51). The aim is to check whether the qualitative pattern persists across independent random seeds.</p>
+    </div>
+    <h3>Wedge outcome of every run</h3>
+    <p class="small muted" style="max-width:46rem">Each cell shows one model at one budget; each mark is one seed (columns 42–51) under uniform sampling (top row) and boundary-aware sampling (bottom row).</p>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Seed-level wedge outcomes, scrollable">
+      {{SEED_MATRIX}}
+    </div>
+    <p class="legend">
+      <span><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="var(--miss)"/></svg>wedge missed</span>
+      <span><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4.2" fill="none" stroke="var(--ok)" stroke-width="1.6"/></svg>wedge recovered</span>
+    </p>
+    <div class="prose" style="margin-top:1.25rem">
+      <p>At N ≥ 1000 the outcome is identical across all seeds for every model: RF always misses, both MLPs always recover. At N = 2500 the RF Hausdorff error has a standard deviation of {{RF_DH_SD}} across seeds, small compared with the roughly {{GAP_DH}} gap to MLP (data), so the RF–MLP gap is not driven by a few outlier seeds.</p>
+    </div>
+    <div class="fig-row">
+      {{FIG:figE_dH_distribution_N2500|Distribution of Hausdorff error at N = 2500|Box plots of d_H across 10 seeds for each model and sampling strategy at N = 2500.}}
+    </div>
+  </div>
+</section>
+
+<section class="block" id="correlation">
+  <div class="wrap">
+    <h2>Correlation analysis</h2>
+    <p class="prose">Spearman correlations across all {{N_MAIN}} runs, from <a href="correlations.csv"><code>correlations.csv</code></a>.</p>
+    <div class="stat-pair">
+      <div class="stat null">
+        <h3>RMSE vs Hausdorff error</h3>
+        <div class="nums"><div><span>Spearman ρ</span><b>{{RHO_H}}</b></div><div><span>p</span><b>{{P_H}}</b></div><div><span>n</span><b>360</b></div></div>
+        <p>The pooled correlation is not statistically significant (BH-adjusted p = {{P_H_BH}}). Across model families, RMSE does not predict boundary error here.</p>
+      </div>
+      <div class="stat sig">
+        <h3>RMSE vs region disagreement</h3>
+        <div class="nums"><div><span>Spearman ρ</span><b>{{RHO_R}}</b></div><div><span>p</span><b>{{P_R}}</b></div><div><span>n</span><b>360</b></div></div>
+        <p>The relationship is statistically significant and positive: RMSE tracks area-weighted disagreement much better than worst-case boundary distance.</p>
+      </div>
+    </div>
+    <div class="fig-row">
+      {{FIG:figC_rmse_vs_hausdorff|RMSE versus Hausdorff error, all runs|Each point is one run; color = model, marker = sampling strategy.}}
+      {{FIG:figD_rmse_vs_region|RMSE versus region disagreement, all runs|Each point is one run; color = model, marker = sampling strategy.}}
+    </div>
+    <h3>Stratified correlations</h3>
+    <div class="prose"><p>The pooled null is a statement about the full pool, not about every subset. Within MLP (data) alone, RMSE and Hausdorff error are positively correlated, and the sign changes across budget strata. This refines the claim to “RMSE does not predict boundary fidelity across model families in this system”, not “the two are unrelated”.</p></div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Stratified correlations, scrollable">
+      <table class="data">
+        <caption>Raw (unadjusted) p-values for strata; the seed-aggregated row uses one point per (model, N, sampling) configuration.</caption>
+        <thead><tr><th class="l">Stratum</th><th>n</th><th>ρ (RMSE, d<sub>H</sub>)</th><th>p</th><th>ρ (RMSE, region)</th><th>p</th></tr></thead>
+        <tbody>
+{{CORR_ROWS}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="theorem">
+  <div class="wrap">
+    <h2>Boundary-displacement theorem</h2>
+    <div class="two-col">
+      <div class="prose">
+        <h3 style="margin-top:0">Theoretical statement</h3>
+        <p>Informally: if a surrogate {{M:fhat}} is uniformly within ε of the true landscape {{M:f}} near a boundary point <i>x</i><sub>0</sub>, and {{M:f}} crosses the threshold transversally there, with {{M:mdef}}, then the surrogate's threshold boundary passes within distance of order ε/<i>m</i> of <i>x</i><sub>0</sub>:</p>
+        {{D:thm}}
+        <p class="small muted">The exact hypotheses and constants are those of the paper; this page reports only the point-level check implemented in the repository.</p>
+      </div>
+      <div class="prose">
+        <h3 style="margin-top:0">Empirical validation of the stated bound</h3>
+        <p>For each of {{TH_EVALS}} (configuration, seed) evaluations, the check compares each testable true-boundary point's displacement to the predicted boundary against ε<sub>loc</sub>/<i>m</i>. Here <i>m</i> = |∂<sub><i>T</i></sub> {{M:Smax}}| from finite differences of the reference grid, ε<sub>loc</sub> is the largest absolute error within ±5 grid cells, and only points with <i>m</i> ≥ 0.05 are testable ({{TH_TESTABLE}} of {{TH_BD}} boundary points).</p>
+        <p><b>{{TH_SAT}} of {{TH_TOT}} checks ({{TH_PCT}}) satisfy the bound.</b> The other {{TH_VIOL}} apparent violations are concentrated in a few evaluations at 156–158 of 159. The repository report attributes a representative case, exceeding the bound by 0.0014 (about 11% of a grid cell), to finite-difference and grid discretization error; that attribution was checked on one example.</p>
+      </div>
+    </div>
+    <p class="note caution"><b>Empirical checks are not a proof.</b> A high fraction of satisfied point-level checks on one simulator supports the stated bound in this experiment; it does not establish the theorem, and the bound is not satisfied in every check.</p>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Theorem validation by configuration, scrollable">
+      <table class="data">
+        <caption>From <a href="theorem_validation_by_config.csv"><code>theorem_validation_by_config.csv</code></a>; per-evaluation rows are in <a href="theorem_validation_multiseed.csv"><code>theorem_validation_multiseed.csv</code></a>. Each configuration has 10 seed evaluations of {{TH_TESTABLE}} checks. ρ is the mean Spearman correlation between margin <i>m</i> and displacement; it is negative throughout.</caption>
+        <thead><tr><th class="l">Model</th><th>N</th><th>Evaluations</th><th>Mean fraction satisfying</th><th>Min fraction</th><th>Mean ρ(<i>m</i>, displacement)</th></tr></thead>
+        <tbody>
+{{TH_ROWS}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="ablation">
+  <div class="wrap">
+    <h2>Tsirelson-aware loss ablation</h2>
+    <div class="prose">
+      <p>A separate ablation uses <b>20 seeds</b> and <b>{{N_ABL}} runs</b> (four loss variants at N = 500 with boundary-aware sampling). p-values are Mann–Whitney tests against the data-only baseline; the boundary and Tsirelson-rate p-values are adjusted with the Benjamini–Hochberg (BH) procedure across six tests (<a href="ablation_bh_correction.csv"><code>ablation_bh_correction.csv</code></a>).</p>
+      <p><b>The loss significantly reduced bound violations, while the study did not find a significant improvement in boundary fidelity.</b> The Hausdorff error is {{ABL_DH_DATA}} with the data-only loss and {{ABL_DH_TS}} / {{ABL_DH_BOTH}} with the Tsirelson penalty / both terms, and none of these differences is significant. This null result is reported as a null result; it is not evidence that the loss helps or hurts boundary fidelity.</p>
+    </div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Ablation table, scrollable">
+      <table class="data">
+        <caption>Mean (95% CI) over 20 seeds, from <code>ablation.csv</code>. The RMSE p-values are raw and not part of the BH set. “Tsirelson violation rate” is the fraction of grid points with predicted {{M:Smax}} &gt; 2√2.</caption>
+        <thead><tr><th class="l">Variant</th><th>RMSE (p vs baseline)</th><th>Hausdorff d<sub>H</sub></th><th>p (BH)</th><th>Tsirelson violation rate</th><th>p (BH)</th></tr></thead>
+        <tbody>
+{{ABL_ROWS}}
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted prose" style="margin-top:.8rem">The boundary-weighted variants also have a higher RMSE than the baseline (about +16%, raw p &lt; 10<sup>−4</sup>).</p>
+    <div class="fig-row">
+      {{FIG:figH_ablation_20seed|Ablation results with 95% confidence intervals|Boundary error and Tsirelson violation rate for the four loss variants (20 seeds, 95% CI).}}
+    </div>
+  </div>
+</section>
+
+<section class="block" id="reproducibility">
+  <div class="wrap">
+    <h2>Fully reproducible experiment</h2>
+    <div class="two-col">
+      <div>
+        <ul class="checks" aria-label="Run audit">
+          <li>{{N_MAIN}} / {{N_MAIN}} main runs completed</li>
+          <li>{{N_ABL}} / {{N_ABL}} ablation runs completed</li>
+          <li>{{N_FAIL}} failed runs</li>
+          <li>ALL SANITY CHECKS PASSED</li>
+        </ul>
+        <p class="small muted prose">The run counts are recomputed from <code>runs.csv</code>, <code>ablation_raw.csv</code> and <code>failures.csv</code> when this page is built. The sanity-check line is the output recorded in the repository README (determinism across reruns; different seeds give different data and metrics).</p>
+        <div class="btns" style="margin-top:1rem">
+          <a class="btn primary" href="https://github.com/AtharvaAnupWasnik3021/F-BELL-">View repository</a>
+          <a class="btn" href="https://github.com/AtharvaAnupWasnik3021/F-BELL-/blob/main/reproducibility_report.md">Reproducibility report</a>
+        </div>
+      </div>
+      <div class="codebox">
+        <button class="icon-btn" type="button" data-copy="#cmds">Copy</button>
+        <pre class="has-btn"><code id="cmds">python3 sanity_check.py
+python3 run_multiseed_sweep.py
+python3 run_ablation_20seed.py
+python3 analyze_multiseed.py
+python3 wedge_failure_analysis.py
+python3 theorem_validation_multiseed.py
+python3 analyze_ablation_20seed.py
+python3 make_figures.py
+python3 generate_report.py</code></pre>
+      </div>
+    </div>
+    <p class="note small"><b>Before running.</b> The scripts were written against a directory layout that differs from the repository root: they use hard-coded <code>/home/claude/…</code> paths and expect <code>experiment_core.py</code> and <code>figure1_data.npz</code> in a base directory (the README says to update the paths when relocating). The environment is Python 3.12 with numpy, scipy, pandas, scikit-learn 1.8.0, torch 2.13.0 (CPU) and matplotlib.</p>
+    <ul class="chips" aria-label="Experiment counts">
+      <li><b>{{N_SEEDS}}</b> seeds</li><li><b>{{N_MAIN}}</b> main runs</li><li><b>20</b> ablation seeds</li>
+      <li><b>{{N_ABL}}</b> ablation runs</li><li><b>{{N_FAIL}}</b> failures</li><li><b>{{TH_TOT}}</b> theorem checks</li>
+    </ul>
+
+    <h3>Research artifacts</h3>
+    <ul class="artifacts">
+      <li><a href="https://github.com/AtharvaAnupWasnik3021/F-BELL-/blob/main/reproducibility_report.md">reproducibility_report.md</a><span>Automated statistical report (opens on GitHub)</span></li>
+      <li><a href="https://github.com/AtharvaAnupWasnik3021/F-BELL-/blob/main/README.md">README.md</a><span>Overview, audit and sanity-check output</span></li>
+      <li><a href="runs.csv">runs.csv</a><span>360 raw run records</span></li>
+      <li><a href="ablation_raw.csv">ablation_raw.csv</a><span>80 raw ablation records</span></li>
+      <li><a href="summary.csv">summary.csv</a><span>Per-configuration summary statistics</span></li>
+      <li><a href="seed_statistics.csv">seed_statistics.csv</a><span>Seed statistics with CIs</span></li>
+      <li><a href="main_table_N2500.csv">main_table_N2500.csv</a><span>Condensed table at N = 2500</span></li>
+      <li><a href="correlations.csv">correlations.csv</a><span>Spearman correlations with BH adjustment</span></li>
+      <li><a href="ablation.csv">ablation.csv</a><span>Ablation summary</span></li>
+      <li><a href="ablation_bh_correction.csv">ablation_bh_correction.csv</a><span>BH-adjusted ablation p-values</span></li>
+      <li><a href="rf_wedge_seedbyseed.csv">rf_wedge_seedbyseed.csv</a><span>RF seed-by-seed wedge table</span></li>
+      <li><a href="wedge_failure_frequency.csv">wedge_failure_frequency.csv</a><span>Wedge-miss frequencies</span></li>
+      <li><a href="theorem_validation_multiseed.csv">theorem_validation_multiseed.csv</a><span>50 theorem-check evaluations</span></li>
+      <li><a href="theorem_validation_by_config.csv">theorem_validation_by_config.csv</a><span>Theorem checks by configuration</span></li>
+      <li><a href="theorem_validation_summary.json">theorem_validation_summary.json</a><span>Theorem-check totals</span></li>
+      <li><a href="config.json">config.json</a><span>Experiment matrix and pre-registered wedge criterion</span></li>
+      <li><a href="failures.csv">failures.csv</a><span>Empty: no failed runs</span></li>
+      <li><a href="#figures">assets/figures/</a><span>PNG and PDF figures</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="block" id="figures">
+  <div class="wrap">
+    <h2>Figures</h2>
+    <p class="prose small muted">Figures A–F and H were produced by the repository's <code>make_figures.py</code> from the archived CSV files (the repository does not include a <code>figures/</code> folder). Figure G in that script, the transversality plot, needs the fitted surrogates and was not regenerated here. The ground-truth landscape (W) comes from <code>make_site_figures.py</code>, which uses only <code>figure1_data.npz</code>.</p>
+    <div class="gallery">
+{{GALLERY}}
+    </div>
+  </div>
+</section>
+
+<section class="block" id="cite">
+  <div class="wrap">
+    <h2>Citation</h2>
+    <p class="prose">No journal, conference, DOI or acceptance status is claimed. Cite the repository:</p>
+    <div class="codebox">
+      <button class="icon-btn" type="button" data-copy="#bibtex">Copy BibTeX</button>
+      <pre class="has-btn"><code id="bibtex">@misc{wasnik2026boundary,
+  title  = {Boundary-Aware Surrogate Modeling of Finite-Temperature Bell Nonlocality},
+  author = {Wasnik, Atharva Anup},
+  year   = {2026},
+  howpublished = {GitHub repository},
+  url    = {https://github.com/AtharvaAnupWasnik3021/F-BELL-}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p class="t">Boundary-Aware Surrogate Modeling of Finite-Temperature Bell Nonlocality</p>
+    <p>Atharva Anup Wasnik</p>
+    <p><a href="https://github.com/AtharvaAnupWasnik3021/F-BELL-">github.com/AtharvaAnupWasnik3021/F-BELL-</a></p>
+    <p>2026</p>
+  </div>
+</footer>
+
+<button class="icon-btn" id="to-top" type="button" aria-label="Back to top">Top</button>
+
+<dialog id="lightbox" aria-label="Figure viewer">
+  <div class="bar"><span class="cap"></span><span><a class="open" href="#" target="_blank" rel="noopener">Open full resolution</a> <button class="icon-btn close" type="button">Close</button></span></div>
+  <img alt="">
+</dialog>
+
+<script src="assets/js/main.js" defer></script>
+</body>
+</html>
